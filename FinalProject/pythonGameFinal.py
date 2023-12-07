@@ -11,14 +11,15 @@ pygame.font.init()
 DISPLAYWIDTH = 700 # squares look best for background
 DISPLAYHEIGHT = 700
 
-window = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT))
+window = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE)
 
-# Thanks to Andre Caron on stackover flow. https://stackoverflow.com/a/4060259
+# Thanks to Andre Caron on stackoverflow. https://stackoverflow.com/a/4060259
 # I guess this is how you always get the path next to the python File
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 # Set Icon
-pygame.display.set_icon(pygame.image.load(os.path.join(__location__,'pythonStar.png')))
+iconPath = os.path.join(__location__,'pythonStar.png')
+pygame.display.set_icon(pygame.image.load(iconPath))
 
 # Set Title
 pygame.display.set_caption("Final Project Game Title Here")
@@ -47,6 +48,7 @@ WINDOWTOP = 0 # this is just for continuity
 WINDOWLEFT = 0
 WINDOWRIGHT = pygame.display.get_window_size()[0]
 WINDOWBOTTOM = pygame.display.get_window_size()[1]
+WINDOWCENTER = [(WINDOWRIGHT / 2), (WINDOWBOTTOM / 2)]
 
 # COORDINATE PAIRS!
 WINDOWTOPLEFT = [0, 0] # this is just for continuity
@@ -66,8 +68,8 @@ desktopRefreshRate = pygame.display.get_current_refresh_rate()
 # Player variables
 playerStartPosition = WINDOWCENTER # (X, Y)
 playerStartSpeed = 250 # pixels per loop but this will be multiplied by deltaTime so idk what it works out to
-playerStartJumpStrength = 500 # idk about this one chief
-playerStartSize = [25, 25] # (X, Y)
+playerStartJumpStrength = 1000 # idk about this one chief
+playerStartSize = [WINDOWRIGHT / 20, WINDOWBOTTOM / 20] # (X, Y)
 playerStartColor = DARKPURPLE # rgb format
 deltaTime = clock.tick(desktopRefreshRate) / 1000
 
@@ -77,13 +79,14 @@ platformStartPosition = (WINDOWBOTTOMCENTER[0], WINDOWBOTTOMCENTER[1] - platform
 platformStartColor = RED # rgb format
 
 # Needs orginizing
-gravityStrength = 250
+gravityStrength = 500
+
 
 # Objects ------------------------------------------------------------------------------------------------#
 class Player: # ([int,int], [int,int], RGB, int, int)
     def __init__(self, startPosition, playerSize, playerColor, playerSpeed, jumpStrength): 
         # Player position is just a tuple for X Y
-        self.position = list(startPosition)
+        self.startPosition = list(startPosition)
         self.size = list(playerSize)
         self.color = list(playerColor)
         self.speed = playerSpeed
@@ -91,45 +94,42 @@ class Player: # ([int,int], [int,int], RGB, int, int)
         self.jumpVelocity = jumpStrength # used for jump function
         self.gravityEnabled = True
         self.inputsEnabled = True
+        self.isGrounded = False
         self.canJump = True
         self.isJumping = False
         self.canMoveLeft = True
         self.canMoveRight = True
         
         # rect uses top left for x,y and then width height
-        self.rectangle = pygame.Rect(self.position, self.size) # (X,Y), (WIDTH,HEIGHT)
+        self.rectangle = pygame.Rect(self.startPosition, self.size) # (X,Y), (WIDTH,HEIGHT)
 
     # This is really bad and needs fixed
-    def jump(self): # Really bad
-        if not self.isJumping:
-            self.isJumping = True
-            self.jumpVelocity = self.jumpStrength # Resets the initial value
-        
-        if self.isJumping:
-            self.gravityEnabled = True
-            self.position[1] -= self.jumpVelocity * deltaTime # subtraction because the y axis is flipped
+    def jump(self): # Really bad TODO: NEEDS FIXED (I have actually come to peace with it, )
+        if self.isGrounded:
+            self.jumpVelocity = self.jumpStrength
+            self.canJump = True
+
+        if self.canJump:
+            self.rectangle.y -= self.jumpVelocity * deltaTime # subtraction because the y axis is flipped
 
             if self.jumpVelocity > 0: # Stops the velocity becoming negative
-                self.jumpVelocity -= 1
-
-            if (self.position[1] + self.size[1]) >= WINDOWBOTTOM: # checks for bottom of screen
-                self.isJumping = False
-                #self.jumpVelocity = self.jumpStrength
-        
+                self.jumpVelocity -= 5
+    
     def draw(self):
-        self.rectangle.update(self.position, self.size)
-        pygame.draw.rect(window, self.color, self.rectangle)
+        self.rectangle.update(self.rectangle)
+        pygame.draw.rect(window, self.color, self.rectangle) # (X,Y), (WIDTH,HEIGHT)
 
 class Platform: # ([int,int], [int,int], RGB)
     def __init__(self, platformPosition, platformSize, platformColor):
-        self.position = platformPosition
+        self.startPosition = platformPosition
         self.size = platformSize
         self.color = platformColor
+        
         # rect uses top left for x,y and then width height
-        self.rectangle = pygame.Rect(self.position, self.size) # (X,Y), (WIDTH,HEIGHT)
+        self.rectangle = pygame.Rect(self.startPosition, self.size) # (X,Y), (WIDTH,HEIGHT)
         
     def draw(self):
-        self.rectangle.update(self.position, self.size)
+        self.rectangle.update(self.rectangle)
         pygame.draw.rect(window, self.color, self.rectangle) # (X,Y), (WIDTH,HEIGHT)
         
 
@@ -143,51 +143,58 @@ platform1 = Platform(platformStartPosition, platformStartSize, platformStartColo
 platform2 = Platform([50, 600], [100, 125], (128, 128, 128))
 # same as first but one giant line without variables, it works but super long
 platform3 = Platform([WINDOWBOTTOMRIGHT[0] - 100, WINDOWBOTTOMRIGHT[1] - 50], [75, 20], (150, 225, 100))
-# So just do whatever not of it matters
+# So just do whatever none of it matters
 platform4 = Platform([(WINDOWLEFT + 100), WINDOWCENTER[1] + 75], [(WINDOWRIGHT - 200), 50], GREEN)
 platform5 = Platform([(WINDOWLEFT + 150), WINDOWCENTER[1] - 150], [(WINDOWRIGHT - 300), 20], WHITE)
 
+# Tiny platform to test stepping up (it doesn't work, my current idea is more if statments, we don't have enough)
+platform6 = Platform((WINDOWCENTER[0] + 150, WINDOWBOTTOM - 5), (50, 5), platformStartColor)
+
 # All plaforms need to go in here to be drawn on screen in the drawThings() function
-platformList = [platform1, platform2, platform3, platform4, platform5] # <-------DON'T FORGET------- HERE!!!!!
+platformList = [platform1, platform2, platform3, platform4, platform5, platform6] # <-------DON'T FORGET------- HERE!!!!!
 
 # Get Rect, used in collision 
 platformRectList = [] # LEAVE THIS EMPTY
 for platform in platformList:
     platformRectList.append(platform.rectangle)
 
+
 #  Funk(tions) -------------------------------------------------------------------------------------------#
 def playerInput(player): # Gets player input then moves player
     # Lord please forgive me for what I am about to do
-    keys = pygame.key.get_pressed()
+    keysPressed = pygame.key.get_pressed()
     if player.inputsEnabled: # Checks if player has inputs enabled
-        if keys[pygame.K_w] or keys[pygame.K_UP] and not isJumping: # Check which key is pressed
+        if keysPressed[pygame.K_w] or keysPressed[pygame.K_UP]: # Check which key is pressed
             if player.canJump: # is that action blocked
-                if player.position[1] >= WINDOWTOP: # checks if you are within the screen
+                if player.rectangle.y >= WINDOWTOP: # checks if you are within the screen
                     player.jump()
+                    
+        if not keysPressed[pygame.K_w] and not keysPressed[pygame.K_UP] and not player.isGrounded:
+            player.canJump = False
         
-        if keys[pygame.K_a] or keys[pygame.K_LEFT]: # repeat
-            if player.canMoveLeft:
-                if player.position[0] >= WINDOWLEFT: # checks for sides
-                    player.position[0] -= player.speed * deltaTime
+        if keysPressed[pygame.K_a] or keysPressed[pygame.K_LEFT]: # repeat
+            if player.canMoveLeft: # is that action blocked
+                if player.rectangle.x >= WINDOWLEFT: # checks for sides
+                    player.rectangle.x -= player.speed * deltaTime
 
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: # repeat
-            if player.canMoveRight:
-                if player.position[0] <= WINDOWRIGHT - player.size[0]: # checks for sides
-                    player.position[0] += player.speed * deltaTime
+        if keysPressed[pygame.K_d] or keysPressed[pygame.K_RIGHT]: # repeat
+            if player.canMoveRight: # is that action blocked
+                if player.rectangle.x <= WINDOWRIGHT - player.size[0]: # checks for sides
+                    player.rectangle.x += player.speed * deltaTime
 
 def gravity(player): # Pulls player down
         #print(player.gravityEnabled) # for testing
         if player.gravityEnabled == True:
-            player.position[1] += gravityStrength * deltaTime
+            player.rectangle.y += gravityStrength * deltaTime
 
             # stops player from going below screen
-            if player.position[1] >= (pygame.display.get_window_size()[1] - player.size[1]):
+            if player.rectangle.y >= (pygame.display.get_window_size()[1] - player.size[1]):
                 player.gravityEnabled = False
-                print("Below Screen!!!!!")
-              
+                player.isGrounded = True
+                print("Below Screen!!!!!")           
 
 def drawFrameRate(): # counts the frames per second
-    # Text for fps values --------------------------------------------------------------------------------#
+    # Text for fps values
     averageFPS = str(round(clock.get_fps(), 2)) # get_fps averages the last 10 calls to clock.tick
     
     fontSize = 25
@@ -222,7 +229,7 @@ def drawThings():
     timer()
     drawFrameRate()
 
-def collision(player): # TODO: detect collision on bottoms of platforms
+def collision(player): # TODO: detect collision on bottoms of platforms and fix this garbage
     # collidelist() checks a list of rectangles (platforms) and returns the index of the one that gets hit
     index = player.rectangle.collidelist(platformRectList)
     if index > -1:
@@ -230,35 +237,48 @@ def collision(player): # TODO: detect collision on bottoms of platforms
 
         # This one is X,Y and the direct center calculated nicely for us
         playerCenter = player.rectangle.center 
-        # position is top left of rectangle so we add size to offset
-        playerTop = player.position[1] # These are ints or floats
-        playerLeft = player.position[0]
-        playerRight = (player.position[0] + player.size[0]) 
-        playerBottom = (player.position[1] + player.size[1])     
+        playerTop = player.rectangle.top # These are ints or floats
+        playerLeft = player.rectangle.left
+        playerRight = player.rectangle.right
+        playerBottom = player.rectangle.bottom
        
         # checks if you are above a platform (remember reversed Y axis)
-        if playerCenter[1] < platformRectList[index].top:
+        if playerBottom > platformRectList[index].top and playerCenter[1] < platformRectList[index].top:
             player.gravityEnabled = False
             player.isJumping = False
             player.canJump = True
+            player.isGrounded = True
+            player.rectangle.y = platformRectList[index].top - player.size[1] + 1 # This puts you 1 pixel in the object but it works
+            
         
-        #checks if player is to the left of a platform and not on top
+        # checks if player is to the left of a platform and not on top
         if playerCenter[0] < platformRectList[index].left and (playerCenter[1] > platformRectList[index].top):
-            player.canMoveRight = False
+            player.canMoveRight = False 
 
-        #checks if player is to the right of a platform and not on top
+        # checks if player is to the right of a platform and not on top
         if playerCenter[0] > platformRectList[index].right and (playerCenter[1] > platformRectList[index].top):
-            player.canMoveLeft = False 
+            player.canMoveLeft = False
+
+        # if player.rectangle.y <= (pygame.display.get_window_size()[1] - player.size[1]):
+        #     player.gravityEnabled = True
+        #     player.isGrounded = False
+        # else:
+        #     player.isGrounded = True
+        #     player.canJump = True
     
-    # -1 is returned when there is no collision, so we reset controlls and gravity
+    # -1 is returned when there is no collision, so we reset controls and gravity
     elif index == -1:
         player.color = DARKPURPLE
         player.canMoveRight = True
         player.canMoveLeft = True
 
-        # makes sure player is inside the window
-        if player.position[1] <= (pygame.display.get_window_size()[1] - player.size[1]):
+        
+        if player.rectangle.bottom <= pygame.display.get_window_size()[1]:
             player.gravityEnabled = True
+            player.isGrounded = False
+        else:
+            player.isGrounded = True
+            player.canJump = True
          
 
 # Main Loop ----------------------------------------------------------------------------------------------#
@@ -274,9 +294,10 @@ while True:
     window.blit(background, (0, 0))
 
     # Funk(tions) ----------------------------------------------------------------------------------------#
+    gravity(player1)
     playerInput(player1)
     collision(player1)
-    gravity(player1)
+    
 
     # This should be at the bottom but before the screen update. I think.
     drawThings()
@@ -288,7 +309,3 @@ while True:
     # Limit frame rate to desktop refresh rate, clock.tick just waits to slow down the loop
     # Also clock.tick() returns the time in milliseconds per frame
     deltaTime = clock.tick(desktopRefreshRate) / 1000 # dividing by 1000 gives use a decimal in seconds
-    
-    # Testing --------------------------------------------------------------------------------------------#
-    # print(deltaTime)
-    # print(desktopRefreshRate)
