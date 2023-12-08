@@ -11,7 +11,7 @@ pygame.font.init()
 DISPLAYWIDTH = 700 # squares look best for background
 DISPLAYHEIGHT = 700
 
-window = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE) # This does not stech objects and is currently useless
+window = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE) # This does not stretch objects and is currently useless
 
 # Thanks to Andre Caron on stackoverflow. https://stackoverflow.com/a/4060259
 # I guess this is how you always get the path next to the python File
