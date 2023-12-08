@@ -11,7 +11,7 @@ pygame.font.init()
 DISPLAYWIDTH = 700 # squares look best for background
 DISPLAYHEIGHT = 700
 
-window = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE) # This does not stretch objects and is currently useless
+window = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE)
 
 # Thanks to Andre Caron on stackoverflow. https://stackoverflow.com/a/4060259
 # I guess this is how you always get the path next to the python File
@@ -229,7 +229,7 @@ def drawThings():
     timer()
     drawFrameRate()
 
-def collision(player): # TODO: detect collision on bottoms of platforms and fix this garbage
+def collision(player): # TODO: clean up this mess
     # collidelist() checks a list of rectangles (platforms) and returns the index of the one that gets hit
     index = player.rectangle.collidelist(platformRectList)
     if index > -1:
@@ -245,12 +245,14 @@ def collision(player): # TODO: detect collision on bottoms of platforms and fix 
         # checks if you are above a platform (remember reversed Y axis)
         if playerBottom > platformRectList[index].top and playerCenter[1] < platformRectList[index].top:
             player.gravityEnabled = False
-            player.isJumping = False
             player.canJump = True
             player.isGrounded = True
             player.rectangle.y = platformRectList[index].top - player.size[1] + 1 # This puts you 1 pixel in the object but it works
+
+         # checks if you are above a platform (remember reversed Y axis)
+        if playerTop < platformRectList[index].bottom and playerCenter[1] > platformRectList[index].bottom:
+            player.rectangle.y = platformRectList[index].bottom
             
-        
         # checks if player is to the left of a platform and not on top
         if playerCenter[0] < platformRectList[index].left and (playerCenter[1] > platformRectList[index].top):
             player.canMoveRight = False 
@@ -259,20 +261,15 @@ def collision(player): # TODO: detect collision on bottoms of platforms and fix 
         if playerCenter[0] > platformRectList[index].right and (playerCenter[1] > platformRectList[index].top):
             player.canMoveLeft = False
 
-        # if player.rectangle.y <= (pygame.display.get_window_size()[1] - player.size[1]):
-        #     player.gravityEnabled = True
-        #     player.isGrounded = False
-        # else:
-        #     player.isGrounded = True
-        #     player.canJump = True
-    
+        if player.rectangle.bottom <= pygame.display.get_window_size()[1]:
+            player.canJump = True
+            
     # -1 is returned when there is no collision, so we reset controls and gravity
     elif index == -1:
         player.color = DARKPURPLE
         player.canMoveRight = True
         player.canMoveLeft = True
 
-        
         if player.rectangle.bottom <= pygame.display.get_window_size()[1]:
             player.gravityEnabled = True
             player.isGrounded = False
