@@ -147,7 +147,7 @@ platform3 = Platform([WINDOWBOTTOMRIGHT[0] - 100, WINDOWBOTTOMRIGHT[1] - 50], [7
 platform4 = Platform([(WINDOWLEFT + 100), WINDOWCENTER[1] + 75], [(WINDOWRIGHT - 200), 50], GREEN)
 platform5 = Platform([(WINDOWLEFT + 150), WINDOWCENTER[1] - 150], [(WINDOWRIGHT - 300), 20], WHITE)
 
-# Tiny platform to test stepping up (it doesn't work, my current idea is more if statments, we don't have enough)
+# Tiny platform to test stepping up (it kinda works, my current idea is more if statments, we don't have enough)
 platform6 = Platform((WINDOWCENTER[0] + 150, WINDOWBOTTOM - 5), (50, 5), platformStartColor)
 
 # All plaforms need to go in here to be drawn on screen in the drawThings() function
@@ -249,7 +249,7 @@ def collision(player): # TODO: clean up this mess
             player.isGrounded = True
             player.rectangle.y = platformRectList[index].top - player.size[1] + 1 # This puts you 1 pixel in the object but it works
 
-         # checks if you are above a platform (remember reversed Y axis)
+         # checks if you are below a platform (remember reversed Y axis)
         if playerTop < platformRectList[index].bottom and playerCenter[1] > platformRectList[index].bottom:
             player.rectangle.y = platformRectList[index].bottom
             
