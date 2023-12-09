@@ -8,10 +8,13 @@ pygame.font.init()
 # TODO: Make resizable, but also scale everything else? 
 # Not hard but just because you can doesn't mean you should
 # 0,0 is top left so the y axis is down the screen.
-DISPLAYWIDTH = 700 # squares look best for background
-DISPLAYHEIGHT = 700
+DISPLAYWIDTH = 1280 # squares look best for background
+DISPLAYHEIGHT = 720
 
-window = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE)
+# RESIZE STILL DOESN'T WORK
+displaysurface = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE)
+window = pygame.Surface(displaysurface.get_size())
+
 
 # Thanks to Andre Caron on stackoverflow. https://stackoverflow.com/a/4060259
 # I guess this is how you always get the path next to the python File
@@ -28,7 +31,6 @@ pygame.display.set_caption("Final Project Game Title Here")
 bg = pygame.image.load(os.path.join(__location__,'spaceBG.png'))
 background = pygame.transform.scale(bg, pygame.display.get_window_size())
 
-
 # Variables ----------------------------------------------------------------------------------------------#
 # CONSTANTS
 # COLORS - rgb format
@@ -39,7 +41,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 DARKPURPLE = (128, 0, 128) # For player, but an option to customize shouldn't be hard
 
-# WINDOW POSITIONS
+# WINDOW POSITIONS these are not constants anymore but I like them in all caps, because they should only ever change on window resize
 # Careful not to change these it can be easy to do that when refrencing them for positions.
 # Remember rectangle positions use the top left corner 
 # so if you use a right or bottom positions it will be off screen
@@ -50,17 +52,6 @@ WINDOWRIGHT = pygame.display.get_window_size()[0]
 WINDOWBOTTOM = pygame.display.get_window_size()[1]
 WINDOWCENTER = [(WINDOWRIGHT / 2), (WINDOWBOTTOM / 2)]
 
-# COORDINATE PAIRS!
-WINDOWTOPLEFT = [0, 0] # this is just for continuity
-WINDOWTOPCENTER = [(WINDOWRIGHT / 2), 0]
-WINDOWTOPRIGHT = [WINDOWRIGHT, 0] # Subtract object width from WINDOWTOPRIGHT[0]
-WINDOWCENTERLEFT = [0, (WINDOWBOTTOM / 2)]
-WINDOWCENTER = [(WINDOWRIGHT / 2), (WINDOWBOTTOM / 2)]
-WINDOWCENTERRIGHT = [WINDOWRIGHT, (WINDOWBOTTOM / 2)]
-WINDOWBOTTOMLEFT = [0, WINDOWBOTTOM] # Subtract object height from WINDOWBOTTOMLEFT[1]
-WINDOWBOTTOMCENTER = [(WINDOWRIGHT / 2), WINDOWBOTTOM]
-WINDOWBOTTOMRIGHT = [WINDOWRIGHT, WINDOWBOTTOM] # Do both!
-
 # Time
 clock = pygame.time.Clock()
 desktopRefreshRate = pygame.display.get_current_refresh_rate()
@@ -68,14 +59,14 @@ desktopRefreshRate = pygame.display.get_current_refresh_rate()
 # Player variables
 playerStartPosition = WINDOWCENTER # (X, Y)
 playerStartSpeed = 250 # pixels per loop but this will be multiplied by deltaTime so idk what it works out to
-playerStartJumpStrength = 1000 # idk about this one chief
-playerStartSize = [WINDOWRIGHT / 20, WINDOWBOTTOM / 20] # (X, Y)
+playerStartJumpStrength = 1500 # idk about this one chief
+playerStartSize = [WINDOWBOTTOM / 20, WINDOWBOTTOM / 20] # (X, Y) # This makes the character scale to the height of the window
 playerStartColor = DARKPURPLE # rgb format
 deltaTime = clock.tick(desktopRefreshRate) / 1000
 
 # Platform variables
 platformStartSize = [50, 15] # (X, Y)
-platformStartPosition = (WINDOWBOTTOMCENTER[0], WINDOWBOTTOMCENTER[1] - platformStartSize[1]) # (X, Y)
+platformStartPosition = (WINDOWCENTER[0], WINDOWBOTTOM - platformStartSize[1]) # (X, Y)
 platformStartColor = RED # rgb format
 
 # Needs orginizing
@@ -105,15 +96,18 @@ class Player: # ([int,int], [int,int], RGB, int, int)
 
     # This is really bad and needs fixed
     def jump(self): # Really bad TODO: NEEDS FIXED (I have actually come to peace with it, )
-        if self.isGrounded:
-            self.jumpVelocity = self.jumpStrength
-            self.canJump = True
+        if self.canJump: # is that action blocked    
+            if self.isGrounded:
+                self.jumpVelocity = self.jumpStrength
+                self.canJump = True
 
-        if self.canJump:
-            self.rectangle.y -= self.jumpVelocity * deltaTime # subtraction because the y axis is flipped
+            if self.canJump:
+                self.rectangle.y -= self.jumpVelocity * deltaTime # subtraction because the y axis is flipped
 
-            if self.jumpVelocity > 0: # Stops the velocity becoming negative
-                self.jumpVelocity -= 5
+                if self.jumpVelocity > 0: # Stops the velocity becoming negative
+                    self.jumpVelocity -= 25
+                else:
+                    self.canJump = False
     
     def draw(self):
         self.rectangle.update(self.rectangle)
@@ -131,10 +125,23 @@ class Platform: # ([int,int], [int,int], RGB)
     def draw(self):
         self.rectangle.update(self.rectangle)
         pygame.draw.rect(window, self.color, self.rectangle) # (X,Y), (WIDTH,HEIGHT)
+
+class Coin: # ([int,int], [int,int], (R,G,B), int)
+    def __init__(self, coinPosition, coinRadius, coinColor, coinValue):
+        self.startPosition = coinPosition
+        self.radius = coinRadius
+        self.color = coinColor
+        self.value = coinValue
+
+    def draw(self):
+        pygame.draw.circle(window, self.color, self.startPosition, self.radius) # (X,Y), (WIDTH,HEIGHT)
         
 
 # Initialize objects -------------------------------------------------------------------------------------#
 player1 = Player(playerStartPosition, playerStartSize, playerStartColor, playerStartSpeed, playerStartJumpStrength)
+
+# Add players here (idk seems like a good idea)
+playerList = [player1]
 
 # Platforms - DON'T FORGET TO PUT THEM IN THE PLATFORM LIST!!! I have made this mistake too much
 # First uses variables set before, lookes better obviously but then you have to look for the variables
@@ -142,16 +149,18 @@ platform1 = Platform(platformStartPosition, platformStartSize, platformStartColo
 # Hard coded, not great, position won't scale but nothing wrong with it
 platform2 = Platform([50, 600], [100, 125], (128, 128, 128))
 # same as first but one giant line without variables, it works but super long
-platform3 = Platform([WINDOWBOTTOMRIGHT[0] - 100, WINDOWBOTTOMRIGHT[1] - 50], [75, 20], (150, 225, 100))
+platform3 = Platform([WINDOWRIGHT - 100, WINDOWBOTTOM - 100], [75, 20], (150, 225, 100))
 # So just do whatever none of it matters
-platform4 = Platform([(WINDOWLEFT + 100), WINDOWCENTER[1] + 75], [(WINDOWRIGHT - 200), 50], GREEN)
+platform4 = Platform([(WINDOWLEFT + 100), WINDOWCENTER[1] + 100], [(WINDOWRIGHT - 200), 50], GREEN)
 platform5 = Platform([(WINDOWLEFT + 150), WINDOWCENTER[1] - 150], [(WINDOWRIGHT - 300), 20], WHITE)
 
-# Tiny platform to test stepping up (it kinda works, my current idea is more if statments, we don't have enough)
-platform6 = Platform((WINDOWCENTER[0] + 150, WINDOWBOTTOM - 5), (50, 5), platformStartColor)
-
 # All plaforms need to go in here to be drawn on screen in the drawThings() function
-platformList = [platform1, platform2, platform3, platform4, platform5, platform6] # <-------DON'T FORGET------- HERE!!!!!
+platformList = [platform1, platform2, platform3, platform4, platform5] # <-------DON'T FORGET------- HERE!!!!!
+
+# Coins
+coin1 = Coin((WINDOWCENTER[0], 50), 10, (255,255,0), 1)
+coin2 = Coin((WINDOWCENTER[0] - 50 , WINDOWCENTER[1]), 10, (255,255,0), 1)
+coinList = [coin1, coin2]
 
 # Get Rect, used in collision 
 platformRectList = [] # LEAVE THIS EMPTY
@@ -164,31 +173,33 @@ def playerInput(player): # Gets player input then moves player
     # Lord please forgive me for what I am about to do
     keysPressed = pygame.key.get_pressed()
     if player.inputsEnabled: # Checks if player has inputs enabled
-        if keysPressed[pygame.K_w] or keysPressed[pygame.K_UP]: # Check which key is pressed
-            if player.canJump: # is that action blocked
-                if player.rectangle.y >= WINDOWTOP: # checks if you are within the screen
-                    player.jump()
-                    
-        if not keysPressed[pygame.K_w] and not keysPressed[pygame.K_UP] and not player.isGrounded:
+        if keysPressed[pygame.K_w]: # Check which key is pressed
+            if player.rectangle.top >= WINDOWTOP: # checks if you are within the screen
+                player.jump()
+
+        # This looks bad but hang with me:
+        # it stops the player from pressing both jump buttons, and makes it so you only get 1 jump 
+        if not keysPressed[pygame.K_w] and not player.isGrounded:
             player.canJump = False
         
-        if keysPressed[pygame.K_a] or keysPressed[pygame.K_LEFT]: # repeat
+        if keysPressed[pygame.K_a]:
             if player.canMoveLeft: # is that action blocked
-                if player.rectangle.x >= WINDOWLEFT: # checks for sides
+                if player.rectangle.left >= WINDOWLEFT: # checks for sides
                     player.rectangle.x -= player.speed * deltaTime
 
-        if keysPressed[pygame.K_d] or keysPressed[pygame.K_RIGHT]: # repeat
+        if keysPressed[pygame.K_d]:
             if player.canMoveRight: # is that action blocked
-                if player.rectangle.x <= WINDOWRIGHT - player.size[0]: # checks for sides
-                    player.rectangle.x += player.speed * deltaTime
-
+                if player.rectangle.right <= WINDOWRIGHT: # checks for sides
+                    # idk what happend but you move faster right than left
+                    # google says it could be a floating point error but I think it is something else hidden in this mess
+                    player.rectangle.x += player.speed * deltaTime * 1.2 # this is the temporary fix
 def gravity(player): # Pulls player down
         #print(player.gravityEnabled) # for testing
         if player.gravityEnabled == True:
             player.rectangle.y += gravityStrength * deltaTime
 
             # stops player from going below screen
-            if player.rectangle.y >= (pygame.display.get_window_size()[1] - player.size[1]):
+            if player.rectangle.bottom >= (WINDOWBOTTOM):
                 player.gravityEnabled = False
                 player.isGrounded = True
                 print("Below Screen!!!!!")           
@@ -219,11 +230,15 @@ def timer(): # counts up
 def drawThings():
     # Draw things. Order matters, things drawn last get put on top
     # This is the only way to layer things that I know of
-    player1.draw()
+    for player in playerList:
+        player.draw()
 
     # draws all platforms
     for platform in platformList:
         platform.draw()
+
+    for coin in coinList:
+        coin.draw()
 
     # UI should go below this so objects don't obscure the view
     timer()
@@ -261,7 +276,7 @@ def collision(player): # TODO: clean up this mess
         if playerCenter[0] > platformRectList[index].right and (playerCenter[1] > platformRectList[index].top):
             player.canMoveLeft = False
 
-        if player.rectangle.bottom <= pygame.display.get_window_size()[1]:
+        if player.rectangle.bottom <= WINDOWBOTTOM:
             player.canJump = True
             
     # -1 is returned when there is no collision, so we reset controls and gravity
@@ -270,13 +285,13 @@ def collision(player): # TODO: clean up this mess
         player.canMoveRight = True
         player.canMoveLeft = True
 
-        if player.rectangle.bottom <= pygame.display.get_window_size()[1]:
+        if player.rectangle.bottom <= WINDOWBOTTOM:
             player.gravityEnabled = True
             player.isGrounded = False
         else:
             player.isGrounded = True
             player.canJump = True
-         
+       
 
 # Main Loop ----------------------------------------------------------------------------------------------#
 while True:
@@ -285,16 +300,21 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-
-    # Wipe screen every frame so things don't overlap
-    window.fill(BLACK)
-    window.blit(background, (0, 0))
+        if event.type == pygame.VIDEORESIZE:
+            WINDOWRIGHT = pygame.display.get_window_size()[0]
+            WINDOWBOTTOM = pygame.display.get_window_size()[1]
+            WINDOWCENTER = [(WINDOWRIGHT / 2), (WINDOWBOTTOM / 2)]
+            
+    # scale window to resize
+    scaledWindow = pygame.transform.scale(window, displaysurface.get_size())
+    # Then wipe screen with the background so things dont overlap
+    window.blit(background, (0,0))
+    displaysurface.blit(scaledWindow, (0,0))
 
     # Funk(tions) ----------------------------------------------------------------------------------------#
     gravity(player1)
     playerInput(player1)
     collision(player1)
-    
 
     # This should be at the bottom but before the screen update. I think.
     drawThings()
