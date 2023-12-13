@@ -2,5 +2,5 @@
 Python game for SDEV 220 final. Uses Pygame-ce
 
 https://pyga.me/
-
-Does nothing right now.
+(almost done but not yet)
+A liitle game. Collect Coins as fast as you can.
