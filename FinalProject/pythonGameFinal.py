@@ -41,6 +41,8 @@ bigFont = pygame.font.Font(os.path.join(__location__,'VT323.ttf'), bigFontSize)
 
 # Variables ----------------------------------------------------------------------------------------------#
 # CONSTANTS
+SCORETOWIN = 3
+
 # COLORS - rgb format
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -340,14 +342,14 @@ while isRunning:
             
     # scale window to resize
     scaledWindow = pygame.transform.scale(window, displaysurface.get_size())
-    if(player1.score < 3):
+    if(player1.score < SCORETOWIN):
         # Then wipe screen with the background so things dont overlap
         window.blit(background, (0,0))
         displaysurface.blit(scaledWindow, (0,0))
     else:
         youWinText = bigFont.render("You Win!", False, WHITE)
         timerText = font.render(f"Time: {timer()}", False, WHITE)
-        youWinScreen.blit(youWinText, (WINDOWCENTER[0] - bigFontSize, WINDOWCENTER[1]))
+        youWinScreen.blit(youWinText, (WINDOWCENTER[0] - bigFontSize, WINDOWCENTER[1])) # This is to center it a little better
         youWinScreen.blit(timerText, (WINDOWCENTER[0] - fontSize, WINDOWCENTER[1] - bigFontSize))
         displaysurface.blit(youWinScreen, (0,0))
         isRunning = False
