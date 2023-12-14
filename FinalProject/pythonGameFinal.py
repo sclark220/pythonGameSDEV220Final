@@ -12,8 +12,10 @@ DISPLAYWIDTH = 1280 # squares look best for background
 DISPLAYHEIGHT = 720
 
 # RESIZE STILL DOESN'T WORK
-displaysurface = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE)
+# displaysurface = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT), pygame.RESIZABLE)
+displaysurface = pygame.display.set_mode((DISPLAYWIDTH, DISPLAYHEIGHT)) # I don't think we need resize anyway
 window = pygame.Surface(displaysurface.get_size())
+youWinScreen = pygame.Surface(displaysurface.get_size())
 
 
 # Thanks to Andre Caron on stackoverflow. https://stackoverflow.com/a/4060259
@@ -30,6 +32,12 @@ pygame.display.set_caption("Final Project Game Title Here")
 # Set Background - scaled to window size
 bg = pygame.image.load(os.path.join(__location__,'spaceBG.png'))
 background = pygame.transform.scale(bg, pygame.display.get_window_size())
+
+fontSize = 25
+bigFontSize = 100
+# Set Font - again grabbing it with the weird method, but it works so well.
+font = pygame.font.Font(os.path.join(__location__,'VT323.ttf'), fontSize)
+bigFont = pygame.font.Font(os.path.join(__location__,'VT323.ttf'), bigFontSize)
 
 # Variables ----------------------------------------------------------------------------------------------#
 # CONSTANTS
@@ -83,6 +91,7 @@ class Player: # ([int,int], [int,int], RGB, int, int)
         self.speed = playerSpeed
         self.jumpStrength = jumpStrength
         self.jumpVelocity = jumpStrength # used for jump function
+        # boolin
         self.gravityEnabled = True
         self.inputsEnabled = True
         self.isGrounded = False
@@ -90,6 +99,8 @@ class Player: # ([int,int], [int,int], RGB, int, int)
         self.isJumping = False
         self.canMoveLeft = True
         self.canMoveRight = True
+        # for coins
+        self.score = 0
         
         # rect uses top left for x,y and then width height
         self.rectangle = pygame.Rect(self.startPosition, self.size) # (X,Y), (WIDTH,HEIGHT)
@@ -121,20 +132,27 @@ class Platform: # ([int,int], [int,int], RGB)
         
         # rect uses top left for x,y and then width height
         self.rectangle = pygame.Rect(self.startPosition, self.size) # (X,Y), (WIDTH,HEIGHT)
+
+        # the is for coins, but I put it here for false platforms idk
+        self.deleteOnTouch = False
         
     def draw(self):
         self.rectangle.update(self.rectangle)
         pygame.draw.rect(window, self.color, self.rectangle) # (X,Y), (WIDTH,HEIGHT)
 
 class Coin: # ([int,int], [int,int], (R,G,B), int)
-    def __init__(self, coinPosition, coinRadius, coinColor, coinValue):
+    def __init__(self, coinPosition, coinSize, coinColor, coinValue):
         self.startPosition = coinPosition
-        self.radius = coinRadius
+        self.size = coinSize
         self.color = coinColor
         self.value = coinValue
+        self.rectangle = pygame.Rect(self.startPosition, self.size) # (X,Y), (WIDTH,HEIGHT)
+        # used to delete the coin on collision
+        self.deleteOnTouch = True
 
     def draw(self):
-        pygame.draw.circle(window, self.color, self.startPosition, self.radius) # (X,Y), (WIDTH,HEIGHT)
+        self.rectangle.update(self.rectangle)
+        pygame.draw.rect(window, self.color, self.rectangle) # (X,Y), (WIDTH,HEIGHT)
         
 
 # Initialize objects -------------------------------------------------------------------------------------#
@@ -147,25 +165,34 @@ playerList = [player1]
 # First uses variables set before, lookes better obviously but then you have to look for the variables
 platform1 = Platform(platformStartPosition, platformStartSize, platformStartColor)
 # Hard coded, not great, position won't scale but nothing wrong with it
-platform2 = Platform([50, 600], [100, 125], (128, 128, 128))
+platform2 = Platform([50, 600], [100, 125], WHITE)
 # same as first but one giant line without variables, it works but super long
-platform3 = Platform([WINDOWRIGHT - 100, WINDOWBOTTOM - 100], [75, 20], (150, 225, 100))
+platform3 = Platform([WINDOWRIGHT - 100, WINDOWBOTTOM - 100], [75, 20], WHITE)
 # So just do whatever none of it matters
-platform4 = Platform([(WINDOWLEFT + 100), WINDOWCENTER[1] + 100], [(WINDOWRIGHT - 200), 50], GREEN)
+platform4 = Platform([(WINDOWLEFT + 100), WINDOWCENTER[1] + 100], [(WINDOWRIGHT - 200), 50], WHITE)
 platform5 = Platform([(WINDOWLEFT + 150), WINDOWCENTER[1] - 150], [(WINDOWRIGHT - 300), 20], WHITE)
 
 # All plaforms need to go in here to be drawn on screen in the drawThings() function
 platformList = [platform1, platform2, platform3, platform4, platform5] # <-------DON'T FORGET------- HERE!!!!!
 
 # Coins
-coin1 = Coin((WINDOWCENTER[0], 50), 10, (255,255,0), 1)
-coin2 = Coin((WINDOWCENTER[0] - 50 , WINDOWCENTER[1]), 10, (255,255,0), 1)
-coinList = [coin1, coin2]
+coin1 = Coin((WINDOWCENTER[0] + 50, 50), (15,15), (255,255,0), 1)
+coin2 = Coin((WINDOWLEFT + 50 , WINDOWCENTER[1]), (15,15), (255,255,0), 1)
+coin3 = Coin((WINDOWRIGHT - 100, WINDOWBOTTOM - 50), (15,15), (255,255,0), 1)
+coinList = [coin1, coin2, coin3]
 
 # Get Rect, used in collision 
-platformRectList = [] # LEAVE THIS EMPTY
+objectList = [] # LEAVE THIS EMPTY
+rectangleList = [] # LEAVE THIS EMPTY
 for platform in platformList:
-    platformRectList.append(platform.rectangle)
+    objectList.append(platform)
+    rectangleList.append(platform.rectangle)
+    
+
+for coin in coinList:
+    objectList.append(coin)
+    rectangleList.append(coin.rectangle)
+    
 
 
 #  Funk(tions) -------------------------------------------------------------------------------------------#
@@ -207,10 +234,7 @@ def gravity(player): # Pulls player down
 def drawFrameRate(): # counts the frames per second
     # Text for fps values
     averageFPS = str(round(clock.get_fps(), 2)) # get_fps averages the last 10 calls to clock.tick
-    
-    fontSize = 25
-    # Set Font - again grabbing it with the weird method, but it works so well.
-    font = pygame.font.Font(os.path.join(__location__,'VT323.ttf'), fontSize)
+
     fpsText = font.render(f"FPS: {averageFPS}", False, WHITE) 
 
     # blit draws the image.
@@ -219,13 +243,18 @@ def drawFrameRate(): # counts the frames per second
 def timer(): # counts up
     currentTime = round((pygame.time.get_ticks() / 1000), 3)
 
-    fontSize = 25
-    # Set Font - again grabbing it with the weird method, but it works so well.
-    font = pygame.font.Font(os.path.join(__location__,'VT323.ttf'), fontSize)
     timerText = font.render(f"Time: {currentTime}", False, WHITE) 
 
     # blit draws the image again from top left.
     window.blit(timerText, (WINDOWCENTER[0] - fontSize * 2, WINDOWTOP)) # trys to center, good enough
+
+    return currentTime # used for the win screen
+
+def drawScore(player):
+    scoreText = font.render(f"score: {player.score}", False, WHITE) 
+
+    # blit draws the image again from top left.
+    window.blit(scoreText, (WINDOWRIGHT - fontSize * 4, WINDOWTOP)) # trys to stay right, good enough
 
 def drawThings():
     # Draw things. Order matters, things drawn last get put on top
@@ -233,22 +262,25 @@ def drawThings():
     for player in playerList:
         player.draw()
 
-    # draws all platforms
-    for platform in platformList:
-        platform.draw()
-
-    for coin in coinList:
-        coin.draw()
+    for object in objectList:
+        object.draw()
 
     # UI should go below this so objects don't obscure the view
     timer()
     drawFrameRate()
+    drawScore(player1)
 
 def collision(player): # TODO: clean up this mess
     # collidelist() checks a list of rectangles (platforms) and returns the index of the one that gets hit
-    index = player.rectangle.collidelist(platformRectList)
+    index = player.rectangle.collidelist(rectangleList)
     if index > -1:
         player.color = RED # for testing
+
+        if (objectList[index].deleteOnTouch):
+            rectangleList.pop(index)
+            objectList.pop(index)
+            player.score += 1 # gives that player a point
+            return None # leave before the game break because we destoryed the object we are touching.
 
         # This one is X,Y and the direct center calculated nicely for us
         playerCenter = player.rectangle.center 
@@ -258,22 +290,22 @@ def collision(player): # TODO: clean up this mess
         playerBottom = player.rectangle.bottom
        
         # checks if you are above a platform (remember reversed Y axis)
-        if playerBottom > platformRectList[index].top and playerCenter[1] < platformRectList[index].top:
+        if playerBottom > rectangleList[index].top and playerCenter[1] < rectangleList[index].top:
             player.gravityEnabled = False
             player.canJump = True
             player.isGrounded = True
-            player.rectangle.y = platformRectList[index].top - player.size[1] + 1 # This puts you 1 pixel in the object but it works
+            player.rectangle.y = rectangleList[index].top - player.size[1] + 1 # This puts you 1 pixel in the object but it works
 
          # checks if you are below a platform (remember reversed Y axis)
-        if playerTop < platformRectList[index].bottom and playerCenter[1] > platformRectList[index].bottom:
-            player.rectangle.y = platformRectList[index].bottom
+        if playerTop < rectangleList[index].bottom and playerCenter[1] > rectangleList[index].bottom:
+            player.rectangle.y = rectangleList[index].bottom
             
         # checks if player is to the left of a platform and not on top
-        if playerCenter[0] < platformRectList[index].left and (playerCenter[1] > platformRectList[index].top):
+        if playerCenter[0] < rectangleList[index].left and (playerCenter[1] > rectangleList[index].top):
             player.canMoveRight = False 
 
         # checks if player is to the right of a platform and not on top
-        if playerCenter[0] > platformRectList[index].right and (playerCenter[1] > platformRectList[index].top):
+        if playerCenter[0] > rectangleList[index].right and (playerCenter[1] > rectangleList[index].top):
             player.canMoveLeft = False
 
         if player.rectangle.bottom <= WINDOWBOTTOM:
@@ -294,7 +326,8 @@ def collision(player): # TODO: clean up this mess
        
 
 # Main Loop ----------------------------------------------------------------------------------------------#
-while True:
+isRunning = True
+while isRunning:
     # Check for quit
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -307,9 +340,18 @@ while True:
             
     # scale window to resize
     scaledWindow = pygame.transform.scale(window, displaysurface.get_size())
-    # Then wipe screen with the background so things dont overlap
-    window.blit(background, (0,0))
-    displaysurface.blit(scaledWindow, (0,0))
+    if(player1.score < 3):
+        # Then wipe screen with the background so things dont overlap
+        window.blit(background, (0,0))
+        displaysurface.blit(scaledWindow, (0,0))
+    else:
+        youWinText = bigFont.render("You Win!", False, WHITE)
+        timerText = font.render(f"Time: {timer()}", False, WHITE)
+        youWinScreen.blit(youWinText, (WINDOWCENTER[0] - bigFontSize, WINDOWCENTER[1]))
+        youWinScreen.blit(timerText, (WINDOWCENTER[0] - fontSize, WINDOWCENTER[1] - bigFontSize))
+        displaysurface.blit(youWinScreen, (0,0))
+        isRunning = False
+
 
     # Funk(tions) ----------------------------------------------------------------------------------------#
     gravity(player1)
@@ -320,9 +362,17 @@ while True:
     drawThings()
 
     # Updates window -------------------------------------------------------------------------------------#
-    pygame.display.flip()
+    pygame.display.flip()   
 
     # Frame rate independence ----------------------------------------------------------------------------#
     # Limit frame rate to desktop refresh rate, clock.tick just waits to slow down the loop
     # Also clock.tick() returns the time in milliseconds per frame
     deltaTime = clock.tick(desktopRefreshRate) / 1000 # dividing by 1000 gives use a decimal in seconds
+
+waitForExit = True
+while(waitForExit):
+    for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                waitForExit = False
