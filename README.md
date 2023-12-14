@@ -1,8 +1,9 @@
 # pythonGameSDEV220Final
-Python game for SDEV 220 final. Uses Pygame-ce
 
+This requires python3 to run
+
+Python game for SDEV 220 final. Uses Pygame-ce
 https://pyga.me/
 
-(almost done but not yet)
-
-A little game. Collect Coins as fast as you can.
+CONTROLS: W/A/S/D to move
+OBJECTIVE: Collect the three coins as fast as possible.
