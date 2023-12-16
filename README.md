@@ -2,7 +2,7 @@
 
 This requires python and pygame-ce to run
 
-Python game for SDEV 220 final. Uses Pygame-ce
+Game for SDEV 220 final.
 
 https://pyga.me/
 
