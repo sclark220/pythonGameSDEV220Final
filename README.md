@@ -1,6 +1,6 @@
 # pythonGameSDEV220Final
 
-This requires python3 to run
+This requires python and pygame-ce to run
 
 Python game for SDEV 220 final. Uses Pygame-ce
 
